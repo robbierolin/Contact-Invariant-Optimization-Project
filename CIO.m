@@ -1,7 +1,7 @@
 %% Declare starting conditions.
 [ N,K,PhaseLength,deltaT,T ] = getConstants();
 
-s0 = getS0(K, N, PhaseLength);
+s0 = getS0();
 
 %% Run Optimization.
 % maxFunEvals = 25;
@@ -13,19 +13,20 @@ s0 = getS0(K, N, PhaseLength);
 % addpath(genpath(pwd));
 % cd ..;
 % s = minFunc(@L, s, options);
-options = optimoptions(@fminunc, 'MaxFunEvals', 10000);
-% TODO: Compute gradient.
+options = optimoptions(@fminunc, 'MaxFunEvals', 1000);
+% % TODO: Compute gradient.
 s = fminunc(@OptimizationPhase1, s0, options);
-Visualize(s,K,N);
-% s = perturb(s);
-% s = fminunc(@OptimizationPhase2, s, options);
+% Visualize(s,K,N);
+s = perturb(s);
+s = fminunc(@OptimizationPhase2, s, options);
 % Visualize(s,K,N); 
-% s = perturb(s);
-% s = fminunc(@OptimizationPhase3, s, options);
+s = perturb(s);
+options = optimoptions(@fminunc, 'MaxFunEvals', 2000);
+s = fminunc(@OptimizationPhase3, s, options);
 
 
 %% Interpret Results.
 
-% Visualize(s, K, N);
+Visualize(s, K, N);
 
 

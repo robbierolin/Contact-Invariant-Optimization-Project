@@ -1,6 +1,6 @@
 function [ cost ] = L_CI(s)
-%L_CI Summary of this function goes here
-%   Detailed explanation goes here
+%L_CI Calculates the contact invariant cost.
+
 
 %% Declare constants.
 [N,K,PhaseLength,deltaT,T] = getConstants();
@@ -36,13 +36,11 @@ for i = 1:N
        value = fnval(pos_spline, ((K*t/T)-1)*pos_spline.breaks(2));
        
        % Get difference between value and closest point in environment.
-       % TODO: also consider other body parts.
-       % TODO: use virtual min operator.
        difference_vector = [0 value(2) 0];
        
        % Get difference in surface normals.
        normal = fnval(orientation_spline, ((K*t/T)-1)*orientation_spline.breaks(2));
-       difference_angle = acos(normal(2) / norm(normal));
+       difference_angle = acos(-1*normal(2) / norm(normal));
        
        
        e(i,t,:) = [difference_vector difference_angle];
@@ -50,17 +48,30 @@ for i = 1:N
     
 end
 
-% TODO: Calculate eDot
-
+% Calculate eDot
+eDot = zeros(N,T,4);
+A = diag(ones(T,1)) - diag(ones(T-1,1),-1); % Backwards Difference matrix
+for i = 1:N
+   ei = e(i, :, :);
+   ei = reshape(ei, [T 4]);
+   edoti = (1/deltaT) * A * ei;
+   eDot(i, :, :) = edoti;
+end
 % Get c, sum values.
 cost = 0;
 for t = 1:T
     for i=1:N
        contact = c(s, i, phi(t, K, T), K, N);
-       normValue = e(i,t,1)*e(i,t,1) + e(i,t,2)*e(i,t,2) + e(i,t,3)*e(i,t,3) + e(i,t,4)*e(i,t,4);
-       cost = cost + contact*normValue;
+       eNormValue = e(i,t,1)*e(i,t,1) + e(i,t,2)*e(i,t,2) + e(i,t,3)*e(i,t,3) + e(i,t,4)*e(i,t,4);
+       eDotNormValue = eDot(i,t,1)*eDot(i,t,1) + eDot(i,t,2)*eDot(i,t,2) + eDot(i,t,3)*eDot(i,t,3) + eDot(i,t,4)*eDot(i,t,4);
+       cost = cost + contact*(eNormValue + eDotNormValue);
     end
 end
 
+%% Calculate gradient.
+
+% AT each k = 1:K
+% for each end effector
+% 
 end
 

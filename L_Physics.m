@@ -15,48 +15,74 @@ pose_dot = (1/deltaT) * BD * pose;
 pose_dotdot = (1/deltaT) * BD * pose_dot;
 F = zeros(T,6*N);
 u = zeros(T,6*N);
+
+
+J = horzcat(zeros(6*N,6), eye(6*N));
+B = J';
+M = zeros(D,D); % Inertia matrix.
+C = zeros(D,D); % Matrix of Coriolis.
+
+g = zeros(D,1); % Gravity. TODO: make force depend on character position.
+g(2) = 10 * -9.81; % Downward force on each end effector.
+
+R = eye(6*N); % TODO: something else.
+
+M = [4 4 4 2 2 2 2 2 2 1 1 1 1 1 1 4 4 4 2 2 2 2 2 2 1 1 1 1 1 1];
+
 for t = 1:T
    % Inverse dynamics are computed by getting Tao(s), J(s), A(s), b(s), W(s), 
    % and solving for f(s) and u(s) to compute physics-violation cost.
-   J = eye(6*N, D); % TODO: figure out what this should do. Map contact forces on each end effector to forces for each degree of freedom.
-   
-   B = eye(D,6*N); % TODO: map applied forces to full space.
-   
+%    J = eye(6*N, D); % TODO: figure out what this should do. Map contact forces on each end effector to forces for each degree of freedom.
+%    
+%    B = eye(D,6*N); % TODO: map applied forces to full space.
+%    B = J';
    
    qt = pose(t, :);
-   M = zeros(D,D); % Inertia matrix.
    torsoPosition = qt(1:3);
-   for i=1:N
-      deltaP = qt(3*i+1 : 3*(i+1)) - torsoPosition;
-      if i == 1 || i == 2
-          mass = 2;
-      else
-          mass = 1;
-      end
-      deltaP = deltaP * mass;
-      deltaPMat = [0 -deltaP(3) deltaP(2); deltaP(3) 0 -deltaP(1); -deltaP(2) deltaP(1) 0];
-      M(3*i+1:3*(i+1), 3*i+1:3*(i+1)) = deltaPMat(:,:)^2;
-   end
+%    for i=1:N
+%       deltaP = qt(3*i+1 : 3*(i+1)) - torsoPosition;
+%       if i == 1 || i == 2
+%           mass = 2;
+%       else
+%           mass = 1;
+%       end
+%       deltaP = deltaP * mass;
+%       deltaPMat = [0 -deltaP(3) deltaP(2); deltaP(3) 0 -deltaP(1); -deltaP(2) deltaP(1) 0];
+%       M(3*i+1:3*(i+1), 3*i+1:3*(i+1)) = deltaPMat(:,:)^2;
+%    end
    
    q_dot = pose_dot(t,:);
-   C = zeros(D,D); % Matrix of Coriolis.
-   for i = 1:D
-       for j = 1:D
-          C(i,j) = sum(cijk(i,j,1:D,M).*q_dot(1:D));
-       end 
-   end
+
+%    for i = 1:D
+%        for j = 1:D
+%           C(i,j) = sum(cijk(i,j,1:D,M).*q_dot(1:D));
+%        end 
+%    end
    
-   g = zeros(D,1); % Gravity. TODO: make force depend on character position.
-   g(2) = 4 * -9.81; % Downward force on each end effector.
-   g(5) = 2 * -9.81;
-   g(8) = 2 * -9.81;
-   g(11) = -9.81;
-   g(14) = -9.81;
+
+%    g(5) = 2 * -9.81;
+%    g(8) = 2 * -9.81;
+%    g(11) = -9.81;
+%    g(14) = -9.81;
    
    q_dotdot = pose_dotdot(t,:);
 
-   tao = M*q_dotdot' + C*q_dot' + g;
+   contact_forces = zeros(D,1);
+   effectors_on_ground = 0;
+   for i = 2:3:14
+       if qt(i) < 0.1 % if end effector is on ground
+           contact_forces(i) =  10 * 9.8 - q_dotdot(i) * M(i); % Add normal force plus impact force
+           effectors_on_ground = effectors_on_ground + 1;
+       end
+   end
+   if effectors_on_ground > 0
+       contact_forces = contact_forces / effectors_on_ground;
+   end
+   applied_forces = q_dotdot .* M;
    
+%    tao = M*q_dotdot' + C*q_dot' + g;
+    tao = contact_forces + applied_forces';
+  
    A = zeros(N,6*N);
    
    b = 10000*ones(N,1); % Normal force for each end effector.
@@ -83,7 +109,7 @@ for t = 1:T
        end 
    end
    
-   R = eye(6*N); % TODO: something else.
+  
    
    % Run quadratic program solver to get f, u.
    H = zeros(12*N + 1);
@@ -115,5 +141,8 @@ for t = 1:T
    F(t,:) = f_t(:);
    u(t,:) = u_t(:);
 end
+
+%% Calculate gradient
+
 end
 

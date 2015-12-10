@@ -1,4 +1,4 @@
-function [ s0 ] = getS0(K,N,PhaseLength)
+function [ s0 ] = getS0()
 %GETS0 Returns the starting value of the solution vector s
 %   Detailed explanation goes here
 
@@ -6,6 +6,8 @@ function [ s0 ] = getS0(K,N,PhaseLength)
 % [x_1 ... x_k x'_1 ... x'_k c_1 ... c_k]
 % and x is of the form
 % [p_c r_c p_1 ... p_N r_1 ... r_N]
+
+[ N,K,PhaseLength,deltaT,T ] = getConstants();
 
 % Starting position (standing at (0,0,0) ): 
 p_c = [0 3 0]; % Torso position.
@@ -68,8 +70,8 @@ end
 xdot_avg = (x_K - x_1) / (K*PhaseLength);
 xdot = repmat(xdot_avg, 1, K);
 
-c_n1k1 = 1; % Left foot starts on floor.
-c_n2k1 = 1; % Right foot starts on floor.
+c_n1k1 = 100; % Left foot starts on floor.
+c_n2k1 = 100; % Right foot starts on floor.
 c_n3k1 = 0; % Left hand does not start on floor.
 c_n4k1 = 0; % Right hand does not start on floor.
 c_1 = [c_n1k1 c_n2k1 c_n3k1 c_n4k1];
@@ -79,8 +81,8 @@ c_1 = [c_n1k1 c_n2k1 c_n3k1 c_n4k1];
 % c_n4kK = 1; % Right hand ends on the floor.
 
 % Same start and end pose. 
-c_n1kK = 1; % Left foot does not end on floor.
-c_n2kK = 1; % Right foot does not end on floot.
+c_n1kK = 100; % Left foot does not end on floor.
+c_n2kK = 100; % Right foot does not end on floot.
 c_n3kK = 0; % Left hand ends on the floor.
 c_n4kK = 0; % Right hand ends on the floor.
 c_K = [c_n1kK c_n2kK c_n3kK c_n4kK];
